@@ -273,13 +273,13 @@ if not st.session_state.finished:
 
 else: # TELA FINAL
     st.balloons()
-    st.title("📊 Seu Mapeamento Profissional")
+    # Título Principal
+    st.markdown("<h1 style='text-align: center; color: #2c3e50;'>🎯 Seu Dossiê Profissional</h1>", unsafe_allow_html=True)
 
+    # Cálculo de Velocidade e Pontuação Final
     speed_score = calculate_speed_score(st.session_state.time_taken, len(questions))
-    
     final_scores = st.session_state.scores.copy()
     
-    # Ajuste de pontuação baseado na velocidade
     if speed_score >= 2:
         final_scores['E'] += speed_score / 2
         final_scores['A'] += speed_score / 2
@@ -288,27 +288,97 @@ else: # TELA FINAL
     
     dominant_code = max(final_scores, key=final_scores.get)
     
-    profiles = {
-        'A': {'name': 'O ANALISTA ESTRATEGISTA', 'desc': 'Você é movido por lógica, dados e eficiência. Prefere planejar e entender profundamente antes de agir.', 'color': '#3498db'},
-        'C': {'name': 'O DIPLOMATA COMUNICADOR', 'desc': 'Você é movido por conexões humanas, influência e harmonia. Excelente em construir pontes.', 'color': '#e91e63'},
-        'I': {'name': 'O VISIONÁRIO INOVADOR', 'desc': 'Você é movido por ideias, criação e o futuro. Gosta de experimentar e pensar fora da caixa.', 'color': '#9b59b6'},
-        'E': {'name': 'O EXECUTOR PRAGMÁTICO', 'desc': 'Você é movido por ação, resultados e velocidade. Focado em fazer acontecer e entregar.', 'color': '#e67e22'}
+    # --- BASE DE DADOS DE INTELIGÊNCIA DE RH ---
+    # Aqui definimos os "scripts" prontos para entrevistas baseados no perfil dominante
+    hr_intelligence = {
+        'A': {
+            'name': 'O ANALISTA ESTRATEGISTA',
+            'desc': 'Perfil movido por dados, lógica e precisão. O pilar da organização.',
+            'color': '#3498db',
+            'qualities': ['Alta capacidade analítica e crítica', 'Organização e método impecáveis', 'Tomada de decisão baseada em fatos', 'Disciplina e foco em qualidade', 'Habilidade de prever riscos'],
+            'defects': ['Perfeccionismo (as vezes atrasa entregas)', 'Dificuldade em delegar tarefas complexas', 'Desconforto com improvisos sem dados', 'Posso parecer frio ou distante', 'Excesso de cautela em momentos de urgência'],
+            'resume_keywords': ['Análise de Dados', 'Planejamento Estratégico', 'Otimização de Processos', 'Gestão de Riscos', 'Auditoria', 'Compliance', 'KPIs', 'Metodologia Ágil'],
+            'avoid': ['Vendas porta-a-porta (agressivas)', 'Ambientes caóticos/sem processos', 'Funções puramente sociais sem desafio intelectual']
+        },
+        'C': {
+            'name': 'O DIPLOMATA COMUNICADOR',
+            'desc': 'Perfil movido por conexões, influência e empatia. A cola que une a equipe.',
+            'color': '#e91e63',
+            'qualities': ['Empatia e inteligência emocional', 'Excelente comunicação verbal e escrita', 'Capacidade de mediação de conflitos', 'Facilidade em networking', 'Persuasão natural'],
+            'defects': ['Dificuldade em dizer "não" (sobrecarga)', 'Posso perder o foco em tarefas repetitivas', 'Decido muito pelo coração/emoção', 'Necessidade de aprovação externa', 'Falo demais em reuniões objetivas'],
+            'resume_keywords': ['Comunicação Corporativa', 'Liderança de Equipes', 'Negociação', 'Atendimento ao Cliente', 'Treinamento e Desenvolvimento', 'Cultura Organizacional', 'Relações Públicas'],
+            'avoid': ['Trabalho isolado em laboratório/ti', 'Análise de planilhas o dia todo', 'Ambientes silenciosos e sem interação']
+        },
+        'I': {
+            'name': 'O VISIONÁRIO INOVADOR',
+            'desc': 'Perfil movido por ideias, futuro e criatividade. O motor da mudança.',
+            'color': '#9b59b6',
+            'qualities': ['Criatividade e "pensar fora da caixa"', 'Adaptabilidade a mudanças rápidas', 'Visão de futuro e tendências', 'Curiosidade intelectual', 'Otimismo diante de problemas'],
+            'defects': ['Desorganização com documentos/prazos', 'Dificuldade em terminar o que começa (acabativa)', 'Perco interesse em rotinas', 'Impulsividade com novas ideias', 'Resistência a regras rígidas'],
+            'resume_keywords': ['Inovação', 'Design Thinking', 'Solução Criativa de Problemas', 'Empreendedorismo', 'UX/UI', 'Brainstorming', 'Gestão de Mudança', 'Prototipagem'],
+            'avoid': ['Contabilidade/Fiscal (regras rígidas)', 'Burocracia estatal repetitiva', 'Funções operacionais de linha de produção']
+        },
+        'E': {
+            'name': 'O EXECUTOR PRAGMÁTICO',
+            'desc': 'Perfil movido por ação, metas e velocidade. A força que faz acontecer.',
+            'color': '#e67e22',
+            'qualities': ['Foco total em resultados e metas', 'Agilidade e senso de urgência', 'Liderança prática e direta', 'Não tenho medo de trabalho duro', 'Resiliência sob pressão'],
+            'defects': ['Impaciência com processos lentos', 'Posso ser insensível com a equipe', 'Tendência a assumir trabalho demais', 'Dificuldade em ouvir opiniões longas', 'Foco no curto prazo (apagar incêndio)'],
+            'resume_keywords': ['Gestão de Projetos', 'Liderança Orientada a Resultados', 'Eficiência Operacional', 'Logística', 'Vendas', 'Alta Performance', 'Scrum', 'Delivery'],
+            'avoid': ['Pesquisa acadêmica de longo prazo', 'Setores muito lentos/burocráticos', 'Funções de suporte passivo']
+        }
     }
-    
-    dominant = profiles[dominant_code]
-    
+
+    profile = hr_intelligence[dominant_code]
+
+    # Exibição do Card Principal
     st.markdown(f"""
-        <div style="padding: 20px; background-color: {dominant['color']}; color: white; border-radius: 10px; text-align: center; margin-bottom: 20px;">
-            <h2 style="color: white; margin:0;">Seu Arquétipo: {dominant['name']}</h2>
-            <p style="font-size: 18px; margin-top: 10px;">{dominant['desc']}</p>
+        <div style="padding: 20px; background-color: {profile['color']}; color: white; border-radius: 10px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <h2 style="color: white; margin:0;">{profile['name']}</h2>
+            <p style="font-size: 18px; margin-top: 5px; font-style: italic;">"{profile['desc']}"</p>
         </div>
     """, unsafe_allow_html=True)
 
-    st.subheader("Raio-X das Competências")
+    # --- ABA DE PREPARAÇÃO PARA ENTREVISTA ---
+    st.subheader("🎙️ Preparação para Entrevista")
+    st.info("Use as frases abaixo quando o recrutador perguntar: **'Fale sobre seus pontos fortes e pontos a melhorar'**.")
+
+    col_q, col_d = st.columns(2)
+    with col_q:
+        st.markdown("### ✅ 5 Qualidades (Para citar)")
+        for q in profile['qualities']:
+            st.markdown(f"- {q}")
+    
+    with col_d:
+        st.markdown("### ⚠️ 5 Pontos de Melhoria (Honestos)")
+        for d in profile['defects']:
+            st.markdown(f"- {d}")
+
+    st.markdown("---")
+
+    # --- ABA DE CURRÍCULO E CARREIRA ---
+    col_cv, col_risk = st.columns(2)
+    
+    with col_cv:
+        st.subheader("📄 Para seu Currículo (Resumo)")
+        st.write("Adicione estes termos no seu 'Resumo Profissional' ou 'Competências':")
+        
+        # Cria tags visuais para as palavras-chave
+        tags_html = "".join([f"<span style='background-color:#e0e0e0; color:#333; padding:4px 8px; border-radius:4px; margin:2px; display:inline-block; font-size:0.9em;'>{k}</span>" for k in profile['resume_keywords']])
+        st.markdown(tags_html, unsafe_allow_html=True)
+
+    with col_risk:
+        st.subheader("⛔ Áreas para Evitar")
+        st.write("Ambientes que podem causar frustração ou baixo desempenho para seu perfil:")
+        for avoid in profile['avoid']:
+            st.markdown(f"❌ **{avoid}**")
+
+    # --- GRÁFICO DE RADAR ---
+    st.markdown("---")
+    st.subheader("📊 Raio-X Visual das Competências")
     
     categories_for_chart = ['Analítico', 'Comunicador', 'Inovador', 'Executor', 'Velocidade']
     values_for_chart = [final_scores['A'], final_scores['C'], final_scores['I'], final_scores['E'], speed_score]
-    
     values_plot = values_for_chart + [values_for_chart[0]]
     categories_plot = categories_for_chart + [categories_for_chart[0]]
 
@@ -316,119 +386,14 @@ else: # TELA FINAL
       r=values_plot,
       theta=categories_plot,
       fill='toself',
-      line_color=dominant['color'],
+      line_color=profile['color'],
       name='Seu Perfil'
     ))
-    
-    fig.update_layout(
-      polar=dict(
-        radialaxis=dict(visible=True, range=[0, max(values_for_chart)+1])
-      ),
-      showlegend=False,
-      margin=dict(t=20, b=20, l=20, r=20)
-    )
+    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, max(values_for_chart)+1])), showlegend=False, margin=dict(t=20, b=20, l=20, r=20))
     st.plotly_chart(fig, use_container_width=True)
 
-    st.info(f"Tempo total: {int(st.session_state.time_taken)} segundos.")
+    st.success(f"⏱️ Tempo de Resposta: {int(st.session_state.time_taken)} segundos. " + 
+               ("Ótima agilidade!" if speed_score >= 2 else "Perfil cauteloso e analítico."))
 
-    st.divider()
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("🚀 Plano de Carreira")
-        if dominant_code == 'A':
-            st.success("**Áreas Ideais:** Ciência de Dados, Engenharia, Finanças, Direito, TI.")
-            st.info("**Foco de Desenvolvimento:** Evite a 'paralisia por análise'. O feito é melhor que o perfeito.")
-        elif dominant_code == 'C':
-            st.success("**Áreas Ideais:** RH, Vendas, Marketing, Psicologia, Ensino.")
-            st.info("**Foco de Desenvolvimento:** Aprenda a focar em métricas objetivas e dizer 'não'.")
-        elif dominant_code == 'I':
-            st.success("**Áreas Ideais:** Design, Arquitetura, Empreendedorismo, P&D, Publicidade.")
-            st.info("**Foco de Desenvolvimento:** Melhore sua 'acabativa'. Ideias precisam de execução.")
-        elif dominant_code == 'E':
-            st.success("**Áreas Ideais:** Gestão de Projetos, Logística, Operações, Cirurgia.")
-            st.info("**Foco de Desenvolvimento:** Desenvolva paciência e escuta ativa.")
-
-    with col2:
-        st.subheader("🛡️ Análise SWOT Pessoal")
-        
-        strengths = []
-        weaknesses = []
-        opportunities = [] # Lista dinâmica de Oportunidades
-        threats = []       # Lista dinâmica de Ameaças
-        
-        # --- 1. FORÇAS E FRAQUEZAS (INTERNO) ---
-        if final_scores['A'] >= 2: 
-            strengths.append("Pensamento Crítico"); strengths.append("Organização")
-        else: 
-            weaknesses.append("Dificuldade com detalhes")
-        
-        if final_scores['C'] >= 2: 
-            strengths.append("Empatia"); strengths.append("Comunicação")
-        else: 
-            weaknesses.append("Comunicação Assertiva")
-        
-        if final_scores['I'] >= 2: 
-            strengths.append("Criatividade"); strengths.append("Inovação")
-        else: 
-            weaknesses.append("Resistência ao novo")
-        
-        if final_scores['E'] >= 2: 
-            strengths.append("Foco em Resultado"); strengths.append("Agilidade")
-        else: 
-            weaknesses.append("Procrastinação")
-
-        # --- 2. OPORTUNIDADES (EXTERNO - Onde seu perfil tem vantagem) ---
-        if dominant_code == 'A':
-            opportunities.append("Alta demanda por Big Data e IA")
-            opportunities.append("Gestão de Processos Complexos")
-        elif dominant_code == 'C':
-            opportunities.append("Cargos de Liderança e Gestão de Pessoas")
-            opportunities.append("Expansão de Networking Global")
-        elif dominant_code == 'I':
-            opportunities.append("Ecossistema de Startups e Tech")
-            opportunities.append("Consultoria de Soluções/Inovação")
-        elif dominant_code == 'E':
-            opportunities.append("Gestão de Crises e Turnaround")
-            opportunities.append("Empreendedorismo e Operações")
-
-        # --- 3. AMEAÇAS (EXTERNO - Riscos reais para seu perfil) ---
-        if dominant_code == 'A':
-            threats.append("Paralisia por excesso de análise (Overthinking)")
-            threats.append("Ambientes que exigem improviso rápido sem dados")
-        elif dominant_code == 'C':
-            threats.append("Automatização de funções de atendimento básico")
-            threats.append("Ambientes isolados ou puramente técnicos")
-        elif dominant_code == 'I':
-            threats.append("Falta de orçamento/recursos para executar ideias")
-            threats.append("Corporações rígidas e burocráticas")
-        elif dominant_code == 'E':
-            threats.append("Burnout (Esgotamento) por excesso de trabalho")
-            threats.append("Erros críticos por falta de planejamento estratégico")
-
-        # --- 4. IMPACTO DO TEMPO NA SWOT ---
-        if speed_score >= 2:
-            strengths.append("Tomada de Decisão Rápida")
-            threats.append("Cometer erros por impulsividade") # Ameaça de ser rápido demais
-        else:
-            strengths.append("Prudência/Cautela")
-            weaknesses.append("Lentidão na Decisão")
-            threats.append("Perda de oportunidades de mercado (Timing)") # Ameaça de ser lento
-
-        # --- RENDERIZAÇÃO FINAL ---
-        st.markdown(f"""
-        **🟢 Forças (Interno):** {', '.join(list(set(strengths)))}
-        
-        **🔴 Fraquezas (Interno):** {', '.join(list(set(weaknesses)))}
-        
-        **🔵 Oportunidades (Externo):** {', '.join(list(set(opportunities)))}
-        
-        **🟠 Ameaças (Externo):** {', '.join(list(set(threats)))}
-        """)
-
-    st.markdown("---")
     if st.button("🔄 Refazer Teste"):
         reset_test()
-
-
-
