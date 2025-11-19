@@ -350,39 +350,85 @@ else: # TELA FINAL
             st.info("**Foco de Desenvolvimento:** Desenvolva paciência e escuta ativa.")
 
     with col2:
-        st.subheader("🛡️ Análise SWOT")
+        st.subheader("🛡️ Análise SWOT Pessoal")
         
         strengths = []
         weaknesses = []
+        opportunities = [] # Lista dinâmica de Oportunidades
+        threats = []       # Lista dinâmica de Ameaças
         
-        if final_scores['A'] >= 2: strengths.append("Pensamento Crítico"); strengths.append("Organização")
-        else: weaknesses.append("Atenção aos detalhes")
+        # --- 1. FORÇAS E FRAQUEZAS (INTERNO) ---
+        if final_scores['A'] >= 2: 
+            strengths.append("Pensamento Crítico"); strengths.append("Organização")
+        else: 
+            weaknesses.append("Dificuldade com detalhes")
         
-        if final_scores['C'] >= 2: strengths.append("Empatia"); strengths.append("Persuasão")
-        else: weaknesses.append("Comunicação Assertiva")
+        if final_scores['C'] >= 2: 
+            strengths.append("Empatia"); strengths.append("Comunicação")
+        else: 
+            weaknesses.append("Comunicação Assertiva")
         
-        if final_scores['I'] >= 2: strengths.append("Criatividade"); strengths.append("Flexibilidade")
-        else: weaknesses.append("Inovação")
+        if final_scores['I'] >= 2: 
+            strengths.append("Criatividade"); strengths.append("Inovação")
+        else: 
+            weaknesses.append("Resistência ao novo")
         
-        if final_scores['E'] >= 2: strengths.append("Foco em Resultado"); strengths.append("Agilidade")
-        else: weaknesses.append("Procrastinação")
+        if final_scores['E'] >= 2: 
+            strengths.append("Foco em Resultado"); strengths.append("Agilidade")
+        else: 
+            weaknesses.append("Procrastinação")
 
+        # --- 2. OPORTUNIDADES (EXTERNO - Onde seu perfil tem vantagem) ---
+        if dominant_code == 'A':
+            opportunities.append("Alta demanda por Big Data e IA")
+            opportunities.append("Gestão de Processos Complexos")
+        elif dominant_code == 'C':
+            opportunities.append("Cargos de Liderança e Gestão de Pessoas")
+            opportunities.append("Expansão de Networking Global")
+        elif dominant_code == 'I':
+            opportunities.append("Ecossistema de Startups e Tech")
+            opportunities.append("Consultoria de Soluções/Inovação")
+        elif dominant_code == 'E':
+            opportunities.append("Gestão de Crises e Turnaround")
+            opportunities.append("Empreendedorismo e Operações")
+
+        # --- 3. AMEAÇAS (EXTERNO - Riscos reais para seu perfil) ---
+        if dominant_code == 'A':
+            threats.append("Paralisia por excesso de análise (Overthinking)")
+            threats.append("Ambientes que exigem improviso rápido sem dados")
+        elif dominant_code == 'C':
+            threats.append("Automatização de funções de atendimento básico")
+            threats.append("Ambientes isolados ou puramente técnicos")
+        elif dominant_code == 'I':
+            threats.append("Falta de orçamento/recursos para executar ideias")
+            threats.append("Corporações rígidas e burocráticas")
+        elif dominant_code == 'E':
+            threats.append("Burnout (Esgotamento) por excesso de trabalho")
+            threats.append("Erros críticos por falta de planejamento estratégico")
+
+        # --- 4. IMPACTO DO TEMPO NA SWOT ---
         if speed_score >= 2:
-            strengths.append("Decisão Rápida")
+            strengths.append("Tomada de Decisão Rápida")
+            threats.append("Cometer erros por impulsividade") # Ameaça de ser rápido demais
         else:
-            strengths.append("Cautela/Prudência")
+            strengths.append("Prudência/Cautela")
             weaknesses.append("Lentidão na Decisão")
-        
+            threats.append("Perda de oportunidades de mercado (Timing)") # Ameaça de ser lento
+
+        # --- RENDERIZAÇÃO FINAL ---
         st.markdown(f"""
-        **Forças:** {', '.join(list(set(strengths)))}
+        **🟢 Forças (Interno):** {', '.join(list(set(strengths)))}
         
-        **Fraquezas:** {', '.join(list(set(weaknesses)))}
+        **🔴 Fraquezas (Interno):** {', '.join(list(set(weaknesses)))}
         
-        **Oportunidade:** Mercado valoriza {dominant['name'].split()[-1]}s ágeis.
+        **🔵 Oportunidades (Externo):** {', '.join(list(set(opportunities)))}
+        
+        **🟠 Ameaças (Externo):** {', '.join(list(set(threats)))}
         """)
 
     st.markdown("---")
     if st.button("🔄 Refazer Teste"):
         reset_test()
+
 
 
