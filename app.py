@@ -104,7 +104,7 @@ questions = [
         "type": "image",
         "title": "Percepção de Ambiente",
         "text": "Olhe para esta arquitetura moderna. O que mais te agrada nela?",
-        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Valencia_City_of_Arts_and_Sciences.jpg/600px-Valencia_City_of_Arts_and_Sciences.jpg",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Sydney_Opera_House_Sails.jpg/640px-Sydney_Opera_House_Sails.jpg",
         "options": [
             {"txt": "A engenharia estrutural e a repetição dos padrões.", "cat": "A"},
             {"txt": "Imagino como as pessoas se sentem passeando por ali.", "cat": "C"},
@@ -384,3 +384,4 @@ else: # TELA FINAL
     st.markdown("---")
     if st.button("🔄 Refazer Teste"):
         reset_test()
+
