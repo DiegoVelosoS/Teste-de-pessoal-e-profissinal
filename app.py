@@ -128,7 +128,7 @@ questions = [
         "type": "image",
         "title": "Associação Abstrata",
         "text": "Esta imagem representa conexões. Como você prefere se conectar ao mundo?",
-        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Neural_network.png/600px-Neural_network.png",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Artificial_neural_network.svg/640px-Artificial_neural_network.svg.png",
         "options": [
             {"txt": "Através da lógica: entendendo como os sistemas funcionam.", "cat": "A"},
             {"txt": "Através da emoção: conversas profundas e networking.", "cat": "C"},
@@ -384,4 +384,5 @@ else: # TELA FINAL
     st.markdown("---")
     if st.button("🔄 Refazer Teste"):
         reset_test()
+
 
