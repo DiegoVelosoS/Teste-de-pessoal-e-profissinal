@@ -179,4 +179,230 @@ def calculate_speed_score(time_taken, total_questions):
     # A pontuação de velocidade é inversamente proporcional ao tempo.
     # Quanto menos tempo, maior a pontuação.
     # Max time = 180s (3 min)
-    # Min time = ~10s (
+    # Min time = ~10s (chute)
+    max_score = 3 # Um peso para a velocidade, pode ser ajustado
+    
+    # Normaliza o tempo gasto (menos tempo = mais pontos)
+    # Ex: se gastou 10s em 180s, (180-10)/170 * max_score = ~max_score
+    # Se gastou 180s em 180s, (180-180)/170 * max_score = 0
+    
+    # Garante que o tempo_gasto não seja zero para evitar divisão por zero
+    time_taken = max(time_taken, 1) 
+    
+    # Um cálculo simples para pontuar a velocidade
+    # Se gastou pouco tempo, a pontuação é alta. Se gastou muito, é baixa.
+    # Ex: 180s - 30s = 150. 150/180 = 0.83. 0.83 * max_score = 2.5 pontos
+    # Ex: 180s - 170s = 10. 10/180 = 0.05. 0.05 * max_score = 0.15 pontos
+    
+    # Se o tempo passou, a pontuação é 0 ou negativa (ajustamos para 0)
+    if time_taken >= 180: # Se excedeu ou chegou no limite
+        return 0
+    
+    speed_score = (180 - time_taken) / 180 * max_score
+    return round(speed_score, 1)
+
+# --- TELA PRINCIPAL ---
+
+if not st.session_state.finished:
+    # HEADER
+    st.title("🧠 NeuroCareer: Mapeamento Profissional")
+    st.markdown("Responda com honestidade. Algumas questões usam **psicologia projetiva** (imagens), não há resposta certa ou errada.")
+    
+    # Inicia o timer na primeira pergunta
+    if st.session_state.start_time is None and st.session_state.current_q == 0:
+        if st.button("Iniciar Teste"):
+            st.session_state.start_time = time.time()
+            st.rerun() # Reinicia para mostrar a primeira pergunta sem o botão
+    
+    if st.session_state.start_time is not None:
+        elapsed_time = time.time() - st.session_state.start_time
+        remaining_time = max(0, 180 - int(elapsed_time)) # 3 minutos = 180 segundos
+
+        if remaining_time == 0:
+            st.warning("Tempo esgotado! O teste será finalizado.")
+            st.session_state.time_taken = 180 # Garante que o tempo final seja o máximo
+            st.session_state.finished = True
+            st.rerun()
+
+        # BARRA DE PROGRESSO
+        progress = (st.session_state.current_q) / len(questions)
+        st.progress(progress)
+
+        # EXIBIÇÃO DA PERGUNTA
+        q = questions[st.session_state.current_q]
+        
+        with st.container():
+            st.markdown(f"""
+                <div class='question-card'>
+                    <h3>Questão {st.session_state.current_q + 1}: {q['title']}</h3>
+                    <p>{q['text']}</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            if q['type'] == 'image' and q['image']:
+                try:
+                    st.image(q['image'], use_container_width=True)
+                    st.caption("Observe a imagem e selecione a opção que melhor descreve sua percepção.")
+                except Exception as e:
+                    st.error(f"Erro ao carregar imagem: {e}. Por favor, prossiga pela descrição.")
+
+            # OPÇÕES (Botões grandes)
+            st.write("") # Espaçamento
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(q['options'][0]['txt'], key="opt1"): process_answer(q['options'][0]['cat'])
+                if st.button(q['options'][1]['txt'], key="opt2"): process_answer(q['options'][1]['cat'])
+            with col2:
+                if st.button(q['options'][2]['txt'], key="opt3"): process_answer(q['options'][2]['cat'])
+                if st.button(q['options'][3]['txt'], key="opt4"): process_answer(q['options'][3]['cat'])
+        
+        # FOOTER com Timer e Contador de Etapas
+        minutes = remaining_time // 60
+        seconds = remaining_time % 60
+        st.markdown(f"""
+            <div class="footer-info">
+                <span>Etapa: {st.session_state.current_q + 1} de {len(questions)}</span>
+                <span class="timer">Tempo: {minutes:02d}:{seconds:02d}</span>
+            </div>
+        """, unsafe_allow_html=True)
+        # Força o Streamlit a atualizar a cada segundo para o timer funcionar
+        time.sleep(1)
+        st.rerun() # Isso faz o Streamlit redesenhar a página para atualizar o timer
+
+else: # Teste Finalizado
+    st.balloons()
+    st.title("📊 Seu Mapeamento Profissional")
+
+    # Calcula a pontuação de velocidade APENAS QUANDO O TESTE TERMINA
+    speed_score = calculate_speed_score(st.session_state.time_taken, len(questions))
+    
+    # Adiciona a pontuação de velocidade aos scores para a análise final
+    final_scores = st.session_state.scores.copy()
+    
+    # Decide onde a pontuação de velocidade mais influencia
+    # Ex: Velocidade alta beneficia Executores e Analistas
+    if speed_score >= 2: # Se a pessoa foi rápida
+        final_scores['E'] += speed_score / 2 # Impacto maior no executor
+        final_scores['A'] += speed_score / 2 # Impacto secundário no analítico
+    else: # Se foi lenta ou demorou
+        # Isso pode indicar cautela (Analítico) ou falta de iniciativa (fraqueza para Executor)
+        # Aqui, vamos considerar uma pontuação mais baixa como neutra ou levemente negativa para E
+        final_scores['E'] += speed_score / 2 # Ainda recebe algum ponto, mas menos
+    
+    # Calcular Perfil Dominante com os scores ajustados pela velocidade
+    dominant_code = max(final_scores, key=final_scores.get)
+    
+    profiles = {
+        'A': {'name': 'O ANALISTA ESTRATEGISTA', 'desc': 'Você é movido por lógica, dados e eficiência. Prefere planejar e entender profundamente antes de agir.', 'color': '#3498db'},
+        'C': {'name': 'O DIPLOMATA COMUNICADOR', 'desc': 'Você é movido por conexões humanas, influência e harmonia. Excelente em construir pontes.', 'color': '#e91e63'},
+        'I': {'name': 'O VISIONÁRIO INOVADOR', 'desc': 'Você é movido por ideias, criação e o futuro. Gosta de experimentar e pensar fora da caixa.', 'color': '#9b59b6'},
+        'E': {'name': 'O EXECUTOR PRAGMÁTICO', 'desc': 'Você é movido por ação, resultados e velocidade. Focado em fazer acontecer e entregar.', 'color': '#e67e22'}
+    }
+    
+    dominant = profiles[dominant_code]
+    
+    # Exibir Perfil Principal com CSS inline para garantir visual
+    st.markdown(f"""
+        <div style="padding: 20px; background-color: {dominant['color']}; color: white; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+            <h2 style="color: white; margin:0;">Seu Arquétipo: {dominant['name']}</h2>
+            <p style="font-size: 18px; margin-top: 10px;">{dominant['desc']}</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # --- GRÁFICO DE RADAR (SPIDER CHART) ---
+    st.subheader("Raio-X das Competências")
+    
+    # Adiciona a "Velocidade de Decisão" como uma categoria no gráfico
+    categories_for_chart = ['Analítico (Lógica)', 'Comunicador (Pessoas)', 'Inovador (Ideias)', 'Executor (Ação)', 'Velocidade de Decisão']
+    values_for_chart = [final_scores['A'], final_scores['C'], final_scores['I'], final_scores['E'], speed_score]
+    
+    # Fecha o gráfico repetindo o primeiro valor para o preenchimento
+    values_plot = values_for_chart + [values_for_chart[0]]
+    categories_plot = categories_for_chart + [categories_for_chart[0]]
+
+    fig = go.Figure(data=go.Scatterpolar(
+      r=values_plot,
+      theta=categories_plot,
+      fill='toself',
+      line_color=dominant['color'],
+      name='Seu Perfil'
+    ))
+    
+    fig.update_layout(
+      polar=dict(
+        radialaxis=dict(visible=True, range=[0, max(values_for_chart)+1])
+      ),
+      showlegend=False,
+      margin=dict(t=20, b=20, l=20, r=20)
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.info(f"Tempo gasto na análise: {int(st.session_state.time_taken)} segundos.")
+
+
+    # --- ANÁLISE SWOT & CARREIRA ---
+    st.divider()
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🚀 Plano de Carreira")
+        if dominant_code == 'A':
+            st.success("**Áreas Ideais:** Ciência de Dados, Engenharia, Finanças, Direito, TI (Análise de Sistemas).")
+            st.info("**Foco de Desenvolvimento:** Evite a 'paralisia por análise'. Busque a perfeição, mas saiba quando o 'bom o suficiente' é o ideal.")
+        elif dominant_code == 'C':
+            st.success("**Áreas Ideais:** RH, Vendas, Marketing, Psicologia, Ensino, Relações Públicas, Atendimento ao Cliente.")
+            st.info("**Foco de Desenvolvimento:** Aprenda a focar em métricas objetivas e a dizer 'não' para manter o foco e evitar sobrecarga.")
+        elif dominant_code == 'I':
+            st.success("**Áreas Ideais:** Design, Arquitetura, Empreendedorismo, P&D, Artes, Publicidade, Inovação de Produtos.")
+            st.info("**Foco de Desenvolvimento:** Melhore sua 'acabativa'. Ideias brilhantes precisam de execução para gerar valor real.")
+        elif dominant_code == 'E':
+            st.success("**Áreas Ideais:** Gestão de Projetos, Logística, Operações, Esportes, Cirurgia, Gerência de Produção.")
+            st.info("**Foco de Desenvolvimento:** Desenvolva a escuta ativa e a paciência com ritmos diferentes do seu. Nem tudo é urgência máxima.")
+
+    with col2:
+        st.subheader("🛡️ Análise SWOT Pessoal")
+        
+        # Lógica Dinâmica SWOT
+        strengths = []
+        weaknesses = []
+        
+        if final_scores['A'] >= 2: strengths.append("Pensamento Crítico e Lógico"); strengths.append("Organização e Planejamento")
+        else: weaknesses.append("Atenção aos detalhes pode ser superficial")
+        
+        if final_scores['C'] >= 2: strengths.append("Empatia e Habilidade Interpessoal"); strengths.append("Persuasão e Negociação")
+        else: weaknesses.append("Dificuldade em comunicação direta/assertiva")
+        
+        if final_scores['I'] >= 2: strengths.append("Criatividade e Inovação"); strengths.append("Flexibilidade e Adaptabilidade")
+        else: weaknesses.append("Resistência a rotinas e processos estruturados")
+        
+        if final_scores['E'] >= 2: strengths.append("Foco em Resultado e Iniciativa"); strengths.append("Agilidade e Praticidade")
+        else: weaknesses.append("Procrastinação ou dificuldade em iniciar tarefas")
+
+        # Ajuste SWOT com base na velocidade
+        if speed_score >= 2:
+            strengths.append("Tomada de Decisão Rápida")
+            if dominant_code == 'E': weaknesses.append("Pode ignorar detalhes importantes para a velocidade")
+            elif dominant_code == 'A': weaknesses.append("Pode pular etapas de análise para agir")
+        else:
+            weaknesses.append("Decisão Lenta ou Excessiva Cautela")
+            if dominant_code == 'E': strengths.append("Ponderação em situações de risco")
+            elif dominant_code == 'A': strengths.append("Análise aprofundada antes de agir")
+
+        
+        st.markdown(f"""
+        **Forças (Interno):**
+        :white_check_mark: {', '.join(set(strengths))}
+        
+        **Fraquezas (Interno):**
+        :warning: {', '.join(set(weaknesses))}
+        
+        **Oportunidades (Externo):**
+        :bulb: O mercado atual valoriza profissionais **{dominant['name'].split()[-1].lower()}s** que demonstram agilidade e capacidade de adaptação.
+        
+        **Ameaças (Externo):**
+        :rotating_light: Ambientes excessivamente rígidos, burocráticos ou com alta pressão por velocidade (se você é mais lento) podem gerar desmotivação ou esgotamento.
+        """)
+
+    st.markdown("---")
+    if st.button("🔄 Refazer Teste Completo"):
+        reset_test()
