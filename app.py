@@ -1,5 +1,6 @@
 import streamlit as st
 import plotly.graph_objects as go
+import time # Importar a biblioteca de tempo
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
@@ -8,30 +9,32 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- ESTILOS CSS PERSONALIZADOS (CORRIGIDO) ---
+# --- ESTILOS CSS PERSONALIZADOS ---
 st.markdown("""
     <style>
     .stButton>button {
         width: 100%;
-        border-radius: 5px;
-        height: 3em;
+        border-radius: 8px; /* Mais arredondado */
+        height: 3.5em; /* Um pouco maior */
         background-color: #4CAF50; /* Verde padrão */
         color: white;
         border: none;
+        font-size: 16px;
+        font-weight: bold;
+        transition: background-color 0.2s;
+        margin-bottom: 8px; /* Espaçamento entre botões */
     }
     .stButton>button:hover {
         background-color: #45a049;
-        color: white;
     }
     
-    /* Correção do Cartão da Pergunta */
     .question-card {
         background-color: #f0f2f6;
         padding: 25px;
         border-radius: 10px;
         border-left: 6px solid #4CAF50;
         margin-bottom: 25px;
-        color: #1e1e1e !important; /* Força texto escuro para leitura */
+        color: #1e1e1e !important;
     }
     
     .question-card h3 {
@@ -44,6 +47,27 @@ st.markdown("""
         line-height: 1.6;
         font-weight: 500;
     }
+
+    /* Estilo para o timer e contador de etapas */
+    .footer-info {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: #333;
+        color: white;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 18px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+        z-index: 1000;
+    }
+    .timer {
+        color: #FFD700; /* Amarelo para o tempo */
+        font-weight: bold;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -54,7 +78,6 @@ questions = [
         "type": "image",
         "title": "Teste Projetivo Visual 1",
         "text": "Observe esta mancha de tinta (Rorschach). O que seus olhos focam primeiro?",
-        # Link estável da Wikimedia (Rorschach real)
         "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Rorschach_blot_01.jpg/600px-Rorschach_blot_01.jpg", 
         "options": [
             {"txt": "A simetria técnica e a forma de 'morcego' ou insígnia.", "cat": "A"},
@@ -79,7 +102,6 @@ questions = [
         "type": "image",
         "title": "Percepção de Ambiente",
         "text": "Olhe para esta arquitetura moderna. O que mais te agrada nela?",
-        # Link estável de Arquitetura
         "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Valencia_City_of_Arts_and_Sciences.jpg/600px-Valencia_City_of_Arts_and_Sciences.jpg",
         "options": [
             {"txt": "A engenharia estrutural e a repetição dos padrões.", "cat": "A"},
@@ -104,7 +126,6 @@ questions = [
         "type": "image",
         "title": "Associação Abstrata",
         "text": "Esta imagem representa conexões. Como você prefere se conectar ao mundo?",
-        # Link estável de Rede Neural/Abstrato
         "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Neural_network.png/600px-Neural_network.png",
         "options": [
             {"txt": "Através da lógica: entendendo como os sistemas funcionam.", "cat": "A"},
@@ -132,6 +153,8 @@ if 'current_q' not in st.session_state:
     st.session_state.current_q = 0
     st.session_state.scores = {'A': 0, 'C': 0, 'I': 0, 'E': 0}
     st.session_state.finished = False
+    st.session_state.start_time = None # Tempo de início do teste
+    st.session_state.time_taken = 0 # Tempo final
 
 # --- FUNÇÕES ---
 
@@ -139,6 +162,8 @@ def reset_test():
     st.session_state.current_q = 0
     st.session_state.scores = {'A': 0, 'C': 0, 'I': 0, 'E': 0}
     st.session_state.finished = False
+    st.session_state.start_time = None
+    st.session_state.time_taken = 0
     st.rerun()
 
 def process_answer(category):
@@ -147,156 +172,11 @@ def process_answer(category):
         st.session_state.current_q += 1
     else:
         st.session_state.finished = True
+        st.session_state.time_taken = time.time() - st.session_state.start_time
     st.rerun()
 
-# --- TELA PRINCIPAL ---
-
-if not st.session_state.finished:
-    # HEADER
-    st.title("🧠 NeuroCareer: Mapeamento Profissional")
-    st.markdown("Responda com honestidade. Algumas questões usam **psicologia projetiva** (imagens), não há resposta certa ou errada.")
-    
-    # BARRA DE PROGRESSO
-    progress = (st.session_state.current_q) / len(questions)
-    st.progress(progress)
-
-    # EXIBIÇÃO DA PERGUNTA
-    q = questions[st.session_state.current_q]
-    
-    with st.container():
-        # Renderiza o cartão da pergunta com HTML seguro para aplicar o CSS
-        st.markdown(f"""
-            <div class='question-card'>
-                <h3>Questão {st.session_state.current_q + 1}: {q['title']}</h3>
-                <p>{q['text']}</p>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        if q['type'] == 'image' and q['image']:
-            # Tenta carregar a imagem, se falhar não quebra o app
-            try:
-                st.image(q['image'], use_container_width=True)
-                st.caption("Observe a imagem e selecione a opção que melhor descreve sua percepção.")
-            except:
-                st.error("Erro ao carregar imagem. Prossiga pelo texto.")
-
-        # OPÇÕES (Botões grandes)
-        st.write("") # Espaçamento
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button(q['options'][0]['txt'], key="opt1"): process_answer(q['options'][0]['cat'])
-            st.write("") # Espaçamento vertical entre botões mobile
-            if st.button(q['options'][1]['txt'], key="opt2"): process_answer(q['options'][1]['cat'])
-        with col2:
-            if st.button(q['options'][2]['txt'], key="opt3"): process_answer(q['options'][2]['cat'])
-            st.write("")
-            if st.button(q['options'][3]['txt'], key="opt4"): process_answer(q['options'][3]['cat'])
-
-else:
-    # --- TELA DE RESULTADOS ---
-    st.balloons()
-    st.title("📊 Seu Mapeamento Profissional")
-    
-    # Calcular Perfil Dominante
-    scores = st.session_state.scores
-    dominant_code = max(scores, key=scores.get)
-    
-    profiles = {
-        'A': {'name': 'O ANALISTA ESTRATEGISTA', 'desc': 'Você é movido por lógica, dados e eficiência.', 'color': '#3498db'}, # Azul
-        'C': {'name': 'O DIPLOMATA COMUNICADOR', 'desc': 'Você é movido por conexões humanas e influência.', 'color': '#e91e63'}, # Rosa
-        'I': {'name': 'O VISIONÁRIO INOVADOR', 'desc': 'Você é movido por ideias, criação e futuro.', 'color': '#9b59b6'}, # Roxo
-        'E': {'name': 'O EXECUTOR PRAGMÁTICO', 'desc': 'Você é movido por ação, resultados e velocidade.', 'color': '#e67e22'} # Laranja
-    }
-    
-    dominant = profiles[dominant_code]
-    
-    # Exibir Perfil Principal com CSS inline para garantir visual
-    st.markdown(f"""
-        <div style="padding: 20px; background-color: {dominant['color']}; color: white; border-radius: 10px; text-align: center; margin-bottom: 20px;">
-            <h2 style="color: white; margin:0;">Seu Arquétipo: {dominant['name']}</h2>
-            <p style="font-size: 18px; margin-top: 10px;">{dominant['desc']}</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # --- GRÁFICO DE RADAR (SPIDER CHART) ---
-    st.subheader("Raio-X das Competências")
-    
-    categories = ['Analítico (Lógica)', 'Comunicador (Pessoas)', 'Inovador (Ideias)', 'Executor (Ação)']
-    values = [scores['A'], scores['C'], scores['I'], scores['E']]
-    
-    # Fecha o gráfico repetindo o primeiro valor
-    values_plot = values + [values[0]]
-    categories_plot = categories + [categories[0]]
-
-    fig = go.Figure(data=go.Scatterpolar(
-      r=values_plot,
-      theta=categories_plot,
-      fill='toself',
-      line_color=dominant['color'],
-      name='Seu Perfil'
-    ))
-    
-    fig.update_layout(
-      polar=dict(
-        radialaxis=dict(visible=True, range=[0, max(values)+1])
-      ),
-      showlegend=False,
-      margin=dict(t=20, b=20, l=20, r=20)
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # --- ANÁLISE SWOT & CARREIRA ---
-    st.divider()
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("🚀 Plano de Carreira")
-        if dominant_code == 'A':
-            st.success("**Áreas Ideais:** Ciência de Dados, Engenharia, Finanças, Direito, TI.")
-            st.info("**Foco de Desenvolvimento:** Evite a 'paralisia por análise'. O feito é melhor que o perfeito.")
-        elif dominant_code == 'C':
-            st.success("**Áreas Ideais:** RH, Vendas, Marketing, Psicologia, Ensino, Relações Públicas.")
-            st.info("**Foco de Desenvolvimento:** Aprenda a focar em métricas objetivas e dizer 'não' para manter o foco.")
-        elif dominant_code == 'I':
-            st.success("**Áreas Ideais:** Design, Arquitetura, Empreendedorismo, P&D, Artes, Publicidade.")
-            st.info("**Foco de Desenvolvimento:** Melhore sua 'acabativa'. Ideias sem execução não geram valor.")
-        elif dominant_code == 'E':
-            st.success("**Áreas Ideais:** Gestão de Projetos, Logística, Operações, Esportes, Cirurgia.")
-            st.info("**Foco de Desenvolvimento:** Desenvolva a escuta ativa e a paciência com ritmos diferentes do seu.")
-
-    with col2:
-        st.subheader("🛡️ Análise SWOT Pessoal")
-        
-        # Lógica Dinâmica SWOT
-        strengths = []
-        weaknesses = []
-        
-        if scores['A'] >= 2: strengths.append("Pensamento Crítico"); strengths.append("Organização")
-        else: weaknesses.append("Atenção aos detalhes")
-        
-        if scores['C'] >= 2: strengths.append("Empatia"); strengths.append("Persuasão")
-        else: weaknesses.append("Comunicação difícil")
-        
-        if scores['I'] >= 2: strengths.append("Criatividade"); strengths.append("Flexibilidade")
-        else: weaknesses.append("Resistência ao novo")
-        
-        if scores['E'] >= 2: strengths.append("Foco em Resultado"); strengths.append("Agilidade")
-        else: weaknesses.append("Procrastinação")
-        
-        st.markdown(f"""
-        **Forças (Interno):**
-        :white_check_mark: {', '.join(strengths)}
-        
-        **Fraquezas (Interno):**
-        :warning: {', '.join(weaknesses)}
-        
-        **Oportunidades (Externo):**
-        :bulb: Mercado valoriza perfis **{dominant['name'].split()[-1].lower()}s** para liderança adaptativa.
-        
-        **Ameaças (Externo):**
-        :rotating_light: Ambientes rígidos ou burocráticos podem desmotivar seu perfil.
-        """)
-
-    st.markdown("---")
-    if st.button("🔄 Refazer Teste Completo"):
-        reset_test()
+def calculate_speed_score(time_taken, total_questions):
+    # A pontuação de velocidade é inversamente proporcional ao tempo.
+    # Quanto menos tempo, maior a pontuação.
+    # Max time = 180s (3 min)
+    # Min time = ~10s (
